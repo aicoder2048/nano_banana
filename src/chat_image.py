@@ -174,7 +174,7 @@ class ChatImageGenerator:
                     ui.show_success(f"Generated {len(new_images)} new image(s)")
                     
                     # Ask if user wants to save immediately
-                    if ui.console.input("Save images now? [y/N]: ").lower() in ['y', 'yes']:
+                    if ui.console.input("Save images now? [Y/n]: ").lower() in ['', 'y', 'yes']:
                         self._save_current_images()
                 
                 # Add response to conversation history
@@ -227,7 +227,7 @@ class ChatImageGenerator:
         
         # Ask if user wants to open images
         if config.get("auto_open_images") or \
-           ui.console.input("Open saved images? [y/N]: ").lower() in ['y', 'yes']:
+           ui.console.input("Open saved images? [Y/n]: ").lower() in ['', 'y', 'yes']:
             self._open_images(saved_files)
     
     def _summarize_conversation(self) -> str:

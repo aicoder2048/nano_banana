@@ -16,7 +16,7 @@ class I18n:
     """Internationalization manager."""
     
     def __init__(self):
-        self.current_language = Language.ENGLISH
+        self.current_language = Language.CHINESE
         self.translations = self._load_translations()
     
     def _load_translations(self) -> Dict[Language, Dict[str, str]]:
@@ -119,8 +119,8 @@ class I18n:
                 "use_this_template": "Use this template? [Y/n]",
                 "generate_image": "Generate image? [Y/n]",
                 "edit_images": "Edit images? [Y/n]",
-                "open_images": "Open generated images? [y/N]",
-                "save_images": "Save images now? [y/N]",
+                "open_images": "Open generated images? [Y/n]",
+                "save_images": "Save images now? [Y/n]",
                 "specify_resolution": "Specify output resolution? [y/N]",
                 "confirm_quit": "Are you sure you want to quit?",
                 "press_enter": "Press Enter to continue...",
@@ -261,8 +261,8 @@ class I18n:
                 "use_this_template": "使用这个模板？ [Y/n]",
                 "generate_image": "生成图片？ [Y/n]",
                 "edit_images": "编辑图片？ [Y/n]",
-                "open_images": "打开生成的图片？ [y/N]",
-                "save_images": "现在保存图片？ [y/N]",
+                "open_images": "打开生成的图片？ [Y/n]",
+                "save_images": "现在保存图片？ [Y/n]",
                 "specify_resolution": "指定输出分辨率？ [y/N]",
                 "confirm_quit": "确定要退出吗？",
                 "press_enter": "按回车键继续...",
