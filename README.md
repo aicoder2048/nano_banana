@@ -29,6 +29,7 @@ A comprehensive, professional-grade CLI application for AI image generation and 
 
 ### 🌟 **Additional Features**
 - **Rich Terminal Interface** - Beautiful, colorful menus with emoji icons
+- **Bilingual Support** - Full Chinese (中文) and English interface
 - **Professional Templates** - Structured prompt templates with parameter guidance
 - **Resolution Control** - 9 preset resolutions from mobile to desktop
 - **History Management** - Complete generation history with search and export
@@ -65,8 +66,9 @@ uv run python test_basic.py
 ## 📖 Usage Guide
 
 ### Interactive Menu Navigation
-The application features a beautiful Rich-based terminal interface:
+The application features a beautiful Rich-based terminal interface with bilingual support:
 
+**English Interface:**
 ```
 🎨 NanoBanana Pro - AI Image Generation Studio
 ═══════════════════════════════════════════════
@@ -77,9 +79,27 @@ The application features a beautiful Rich-based terminal interface:
 ⚙️  [4] Settings & Configuration
 📊  [5] View Generation History
 ❓  [6] Help & Templates
+🌐  [7] Language / 语言
 🚪  [Q] Quit
 
-Select an option [1-6, Q]: 
+Select an option [1-7, Q]: 
+```
+
+**Chinese Interface (中文界面):**
+```
+🎨 小香蕉专业版 - AI 图像生成工作室
+═══════════════════════════════════════════════
+
+🖼️  [1] 文字生成图片
+🎭  [2] 图片编辑与增强
+💬  [3] 对话式图片生成
+⚙️  [4] 设置与配置
+📊  [5] 查看生成历史
+❓  [6] 帮助与模板
+🌐  [7] Language / 语言
+🚪  [Q] 退出
+
+选择选项 [1-7, Q]:
 ```
 
 ### Template-Guided Generation
@@ -109,6 +129,19 @@ emphasizing {key_textures_details}. The image should be in a {aspect_ratio} form
 'quit' - Exit chat mode
 ```
 
+### Language Switching / 语言切换
+Switch between English and Chinese interfaces:
+
+1. Select option **[7] Language / 语言** from main menu
+2. Choose your preferred language:
+   - **[1] English** - Switch to English interface
+   - **[2] 中文** - 切换到中文界面
+3. Language preference is automatically saved
+
+**Supported Languages:**
+- 🇺🇸 **English** - Full interface translation
+- 🇨🇳 **中文** - 完整的中文界面翻译
+
 ## 📁 Project Structure
 
 ```
@@ -117,13 +150,15 @@ NanoBanana/
 │   ├── __init__.py              # Package initialization
 │   ├── main.py                  # Main application entry point
 │   ├── ui.py                    # Rich-based user interface
+│   ├── i18n.py                  # Internationalization (English/Chinese)
 │   ├── config.py                # Configuration management
 │   ├── templates.py             # Prompt templates system
 │   ├── gemini_client.py         # Gemini API client
 │   ├── text_to_image.py         # Text-to-image generation
 │   ├── image_editing.py         # Image editing features
 │   ├── chat_image.py            # Conversational generation
-│   └── settings.py              # Settings management
+│   ├── settings.py              # Settings management
+│   └── convert_2_jpg.py         # Image format conversion utility
 ├── images/                      # Generated images output
 ├── .nanobanana/                 # Application data
 │   ├── config.json             # User preferences
