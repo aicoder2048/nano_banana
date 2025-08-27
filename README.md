@@ -24,8 +24,10 @@ A comprehensive, professional-grade CLI application for AI image generation and 
 #### 3. **💬 Chat-Image (Conversational)**
 - Multi-turn conversational refinement
 - Iterative image improvement through natural language
-- Context-aware modifications
+- **🆕 Local image references** - Reference your own images with `@image:/path/to/file.jpg`
+- Context-aware modifications with both generated and reference images
 - Progressive enhancement capabilities
+- Image caching and reuse within conversations
 
 ### 🌟 **Additional Features**
 - **Rich Terminal Interface** - Beautiful, colorful menus with emoji icons
@@ -215,7 +217,17 @@ Access via Settings menu (option 4) to configure:
 2. Start with: "Create a futuristic cityscape"
 3. Refine with: "Make it more neon-lit"
 4. Continue: "Add flying cars in the sky"
-5. Save final result
+5. **Reference local images**: "@image:/Users/john/photos/sunset.jpg Use this lighting style"
+6. Save final result
+
+### Chat Mode with Image References
+```bash
+# Reference local images in conversation
+"@image:/path/to/photo.jpg Analyze this photo"
+"Make the current image look like @img:style_reference.png"
+"Combine the style from @style.jpg with @content.png"
+"@/Users/john/Desktop/portrait.jpg Change the background to a forest"
+```
 
 ## 🔧 Image Format Conversion
 
@@ -262,6 +274,21 @@ uv run python src/convert_2_jpg.py image.png -o output.jpg -v
 - Python 3.13+
 - Google Gemini API key
 - Dependencies: `rich`, `google-generativeai`, `pillow`, `python-dotenv`
+
+## 🔧 Troubleshooting
+
+If you encounter any errors while using NanoBanana Pro:
+
+1. **Check the detailed error messages** - The application now provides specific error descriptions
+2. **Review the [Troubleshooting Guide](TROUBLESHOOTING.md)** for common issues and solutions
+3. **Use the image conversion utility** for unsupported formats
+4. **Verify your API key and internet connection**
+
+Common error solutions:
+- **"Image file not found"** → Check file paths and permissions
+- **"API authentication failed"** → Verify your `GEMINI_API_KEY` in `.env`
+- **"Content blocked"** → Try different images or prompts
+- **Format issues** → Use `uv run python src/convert_2_jpg.py image.heic`
 
 ## 🤝 Contributing
 
