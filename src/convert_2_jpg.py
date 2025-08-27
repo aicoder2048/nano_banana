@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Image format conversion utility for NanoBanana Pro.
-Converts HEIC or PNG images to JPEG format for optimal Gemini API compatibility.
+Converts HEIC, PNG, or JPEG images to JPEG format for optimal Gemini API compatibility.
 """
 
 import os
@@ -49,13 +49,13 @@ def convert_image_to_jpeg(input_path: str, output_path: Optional[str] = None, qu
         
         # Check file format
         input_ext = input_file.suffix.lower()
-        supported_formats = ['.png', '.heic', '.heif']
+        supported_formats = ['.png', '.heic', '.heif', '.jpg', '.jpeg']
         
         if not HEIC_SUPPORT and input_ext in ['.heic', '.heif']:
             return False, f"HEIC format not supported. Install pillow-heif: uv add pillow-heif"
         
         if input_ext not in supported_formats:
-            return False, f"Unsupported input format: {input_ext}. Supported: PNG, HEIC, HEIF"
+            return False, f"Unsupported input format: {input_ext}. Supported: PNG, HEIC, HEIF, JPEG"
         
         # Open and convert image
         with Image.open(input_file) as img:
@@ -106,9 +106,9 @@ def batch_convert(input_dir: str, output_dir: Optional[str] = None, quality: int
     output_path.mkdir(parents=True, exist_ok=True)
     
     # Find all supported image files
-    supported_extensions = ['.png', '.heic', '.heif']
+    supported_extensions = ['.png', '.heic', '.heif', '.jpg', '.jpeg']
     if not HEIC_SUPPORT:
-        supported_extensions = ['.png']
+        supported_extensions = ['.png', '.jpg', '.jpeg']
     
     image_files = []
     for ext in supported_extensions:
@@ -129,9 +129,9 @@ def batch_convert(input_dir: str, output_dir: Optional[str] = None, quality: int
 def main():
     """Main function for command-line usage."""
     parser = argparse.ArgumentParser(
-        description="Convert HEIC or PNG images to JPEG format for Gemini API compatibility"
+        description="Convert HEIC, PNG, or JPEG images to JPEG format for Gemini API compatibility"
     )
-    parser.add_argument("input", help="Input image file or directory")
+    parser.add_argument("input", help="Input image file or directory (PNG, HEIC, HEIF, JPEG)")
     parser.add_argument("-o", "--output", help="Output file or directory (optional)")
     parser.add_argument("-q", "--quality", type=int, default=90, 
                        help="JPEG quality (1-100, default: 90)")
@@ -222,7 +222,7 @@ With NanoBanana Pro:
   python ../nanobanana_pro.py # then select image editing mode
 
 Supported formats:
-  Input:  PNG, HEIC, HEIF (HEIC requires pillow-heif)
+  Input:  PNG, HEIC, HEIF, JPEG (HEIC requires pillow-heif)
   Output: JPEG (.jpg)
 
 Quality settings:
