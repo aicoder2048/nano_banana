@@ -1,6 +1,8 @@
 """User interface components for NanoBanana Pro using Rich."""
 
 import os
+import glob
+from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from rich.console import Console
 from rich.panel import Panel
@@ -16,6 +18,7 @@ from rich.layout import Layout
 
 from .config import config
 from .templates import template_manager, PromptTemplate
+from .enhanced_image_browser import create_enhanced_browser
 from .i18n import i18n, Language
 
 class NanoBananaUI:
@@ -158,35 +161,57 @@ class NanoBananaUI:
         self.console.print(f"\n[bold green]📋 Template Guide: {template.name}[/bold green]")
         self.console.print(f"[dim]{template.description}[/dim]\n")
         
-        # Show template structure
+        # Show template structure with proper text wrapping
+        from rich.text import Text
+        template_text = Text(template.template)
         template_panel = Panel(
-            Syntax(template.template, "text", theme="monokai", line_numbers=False),
+            template_text,
             title="Template Structure",
-            border_style="blue"
+            border_style="blue",
+            expand=False,
+            padding=(1, 2)
         )
         self.console.print(template_panel)
         
-        # Show example
+        # Show example with proper text wrapping
+        example_text = Text(template.example)
         example_panel = Panel(
-            template.example,
+            example_text,
             title="Example Output",
-            border_style="green"
+            border_style="green",
+            expand=False,
+            padding=(1, 2)
         )
         self.console.print(example_panel)
         self.console.print()
     
     def get_template_parameters(self, template: PromptTemplate) -> Dict[str, str]:
-        """Get parameters from user to fill template."""
+        """Get parameters from user to fill template (legacy method, uses detailed mode)."""
+        return self.get_template_parameters_detailed(template)
+    
+    def get_template_parameters_quick(self, template: PromptTemplate) -> Dict[str, str]:
+        """Get only essential parameters from user."""
         parameters = {}
         
-        self.console.print("[bold cyan]📝 Fill Template Parameters[/bold cyan]\n")
+        # Get essential parameters only
+        essential_params = [p for p in template.parameters if p.level == "essential" or p.required]
         
-        for param in template.parameters:
+        if not essential_params:
+            self.console.print("[yellow]No essential parameters found. Using all parameters.[/yellow]")
+            return self.get_template_parameters_detailed(template)
+        
+        self.console.print(f"[bold cyan]⚡ Quick Mode - {len(essential_params)} Essential Parameters[/bold cyan]\n")
+        
+        for param in essential_params:
             prompt_text = f"[bold]{param.name}[/bold]"
             if param.description:
                 prompt_text += f" ([dim]{param.description}[/dim])"
             
             prompt_text += f"\nExample: [green]{param.example}[/green]"
+            
+            # Show suggestions if available
+            if param.suggestions:
+                prompt_text += f"\nSuggestions: [blue]{', '.join(param.suggestions[:3])}...[/blue]"
             
             if param.required:
                 value = Prompt.ask(prompt_text)
@@ -194,10 +219,120 @@ class NanoBananaUI:
                     self.console.print("[red]This parameter is required.[/red]")
                     value = Prompt.ask(prompt_text)
             else:
-                value = Prompt.ask(prompt_text, default=param.example)
+                value = Prompt.ask(prompt_text, default=param.default or param.example)
             
             parameters[param.name] = value
             self.console.print()
+        
+        # Fill non-essential parameters with defaults
+        for param in template.parameters:
+            if param.name not in parameters:
+                parameters[param.name] = param.default or param.example
+        
+        return parameters
+    
+    def get_template_parameters_detailed(self, template: PromptTemplate) -> Dict[str, str]:
+        """Get all parameters from user with full interface."""
+        parameters = {}
+        
+        self.console.print(f"[bold cyan]🔍 Detailed Mode - All {len(template.parameters)} Parameters[/bold cyan]\n")
+        
+        for param in template.parameters:
+            # Show parameter level
+            level_color = {"essential": "red", "optional": "yellow", "advanced": "blue"}.get(param.level, "white")
+            level_badge = f"[{level_color}]({param.level.upper()})[/{level_color}]"
+            
+            prompt_text = f"{level_badge} [bold]{param.name}[/bold]"
+            if param.description:
+                prompt_text += f" ([dim]{param.description}[/dim])"
+            
+            prompt_text += f"\nExample: [green]{param.example}[/green]"
+            
+            # Show suggestions
+            if param.suggestions:
+                prompt_text += f"\nSuggestions: [blue]{', '.join(param.suggestions[:5])}[/blue]"
+            
+            if param.required:
+                value = Prompt.ask(prompt_text)
+                while not value.strip():
+                    self.console.print("[red]This parameter is required.[/red]")
+                    value = Prompt.ask(prompt_text)
+            else:
+                default_value = param.default or param.example
+                value = Prompt.ask(prompt_text, default=default_value)
+            
+            parameters[param.name] = value
+            self.console.print()
+        
+        return parameters
+    
+    def get_template_parameters_custom(self, template: PromptTemplate) -> Dict[str, str]:
+        """Let user choose which parameters to customize."""
+        parameters = {}
+        
+        self.console.print(f"[bold cyan]🎯 Custom Mode - Choose Parameters to Fill[/bold cyan]\n")
+        
+        # Show all parameters with levels
+        self.console.print("Available parameters:")
+        for i, param in enumerate(template.parameters, 1):
+            level_color = {"essential": "red", "optional": "yellow", "advanced": "blue"}.get(param.level, "white")
+            required_mark = " [red]*[/red]" if param.required else ""
+            self.console.print(f"  [{level_color}]{i:2d}[/{level_color}]. {param.name}{required_mark} - {param.description}")
+        
+        self.console.print(f"\n[dim]* = required parameter[/dim]")
+        self.console.print("[dim]Enter parameter numbers separated by commas (e.g., 1,3,5)[/dim]")
+        self.console.print("[dim]Or press Enter to fill only essential/required parameters[/dim]\n")
+        
+        # Get user choice
+        choice = self.console.input("Select parameters to fill: ").strip()
+        
+        if choice:
+            try:
+                selected_indices = [int(x.strip()) - 1 for x in choice.split(",")]
+                selected_params = [template.parameters[i] for i in selected_indices 
+                                if 0 <= i < len(template.parameters)]
+            except (ValueError, IndexError):
+                self.console.print("[yellow]Invalid selection. Using essential/required parameters only.[/yellow]")
+                selected_params = [p for p in template.parameters if p.level == "essential" or p.required]
+        else:
+            # Default to essential/required parameters
+            selected_params = [p for p in template.parameters if p.level == "essential" or p.required]
+        
+        if not selected_params:
+            selected_params = template.parameters  # Fallback to all parameters
+        
+        self.console.print(f"\nFilling {len(selected_params)} selected parameters:\n")
+        
+        # Fill selected parameters
+        for param in selected_params:
+            level_color = {"essential": "red", "optional": "yellow", "advanced": "blue"}.get(param.level, "white")
+            level_badge = f"[{level_color}]({param.level.upper()})[/{level_color}]"
+            
+            prompt_text = f"{level_badge} [bold]{param.name}[/bold]"
+            if param.description:
+                prompt_text += f" ([dim]{param.description}[/dim])"
+            
+            prompt_text += f"\nExample: [green]{param.example}[/green]"
+            
+            if param.suggestions:
+                prompt_text += f"\nSuggestions: [blue]{', '.join(param.suggestions[:5])}[/blue]"
+            
+            if param.required:
+                value = Prompt.ask(prompt_text)
+                while not value.strip():
+                    self.console.print("[red]This parameter is required.[/red]")
+                    value = Prompt.ask(prompt_text)
+            else:
+                default_value = param.default or param.example
+                value = Prompt.ask(prompt_text, default=default_value)
+            
+            parameters[param.name] = value
+            self.console.print()
+        
+        # Fill unselected parameters with defaults
+        for param in template.parameters:
+            if param.name not in parameters:
+                parameters[param.name] = param.default or param.example
         
         return parameters
     
@@ -244,33 +379,328 @@ class NanoBananaUI:
         choice = Prompt.ask("Select resolution", choices=choices, default=str(default_idx))
         return resolutions[int(choice) - 1]
     
-    def get_image_paths(self, max_images: int = 3, required: bool = True) -> List[str]:
-        """Get image file paths from user."""
+    def _scan_for_images(self, directory: str = ".", recursive: bool = True) -> List[str]:
+        """Scan directory for image files."""
+        image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.heic', '.webp'}
         images = []
         
-        self.console.print(f"[bold cyan]📁 Select Images (max {max_images})[/bold cyan]\n")
+        try:
+            if recursive:
+                # Search current directory and subdirectories
+                for ext in image_extensions:
+                    pattern = os.path.join(directory, "**", f"*{ext}")
+                    images.extend(glob.glob(pattern, recursive=True))
+                    pattern = os.path.join(directory, "**", f"*{ext.upper()}")
+                    images.extend(glob.glob(pattern, recursive=True))
+            else:
+                # Search only current directory
+                for ext in image_extensions:
+                    pattern = os.path.join(directory, f"*{ext}")
+                    images.extend(glob.glob(pattern))
+                    pattern = os.path.join(directory, f"*{ext.upper()}")
+                    images.extend(glob.glob(pattern))
+            
+            # Remove duplicates and sort
+            images = sorted(list(set(images)))
+            
+            # Convert to relative paths for better display
+            current_dir = os.getcwd()
+            relative_images = []
+            for img in images:
+                try:
+                    rel_path = os.path.relpath(img, current_dir)
+                    if len(rel_path) < len(img):
+                        relative_images.append(rel_path)
+                    else:
+                        relative_images.append(img)
+                except ValueError:
+                    # Can't make relative path, use absolute
+                    relative_images.append(img)
+            
+            return relative_images[:50]  # Limit to 50 images for performance
+            
+        except Exception as e:
+            self.console.print(f"[red]Error scanning for images: {e}[/red]")
+            return []
+    
+    def _show_image_selection_menu(self, images: List[str], title: str = "Select Image") -> Optional[str]:
+        """Show interactive menu to select an image."""
+        if not images:
+            self.console.print("[yellow]No images found in current directory and subdirectories.[/yellow]")
+            return None
+        
+        self.console.print(f"\n[bold cyan]📸 {title}[/bold cyan]")
+        self.console.print(f"[dim]Found {len(images)} image(s) in current directory and subdirectories[/dim]\n")
+        
+        # Show images in a table format
+        table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("#", style="bold green", width=4)
+        table.add_column("Image Path", style="white")
+        table.add_column("Size", style="dim", width=10)
+        
+        # Add images to table (show first 20, then paginate if needed)
+        display_images = images[:20]
+        for i, img_path in enumerate(display_images, 1):
+            try:
+                # Get file size
+                size = os.path.getsize(img_path)
+                size_str = self._format_file_size(size)
+            except:
+                size_str = "Unknown"
+            
+            # Truncate long paths for display
+            display_path = img_path
+            if len(display_path) > 60:
+                display_path = "..." + display_path[-57:]
+            
+            table.add_row(str(i), display_path, size_str)
+        
+        if len(images) > 20:
+            table.add_row("...", f"[dim](and {len(images) - 20} more)[/dim]", "")
+        
+        self.console.print(table)
+        
+        # Show options
+        self.console.print(f"\n[bold]Options:[/bold]")
+        self.console.print(f"[green]1-{min(20, len(images))}[/green]: Select image by number")
+        if len(images) > 20:
+            self.console.print("[yellow]'more'[/yellow]: Show all images")
+        self.console.print("[yellow]'manual'[/yellow]: Enter path manually")
+        self.console.print("[yellow]'scan'[/yellow]: Scan different directory")
+        self.console.print("[red]'skip'[/red]: Skip this image")
+        
+        while True:
+            choice = self.console.input("\nSelect option: ").strip().lower()
+            
+            if choice == 'skip':
+                return None
+            elif choice == 'manual':
+                return self._get_manual_image_path()
+            elif choice == 'scan':
+                return self._scan_different_directory()
+            elif choice == 'more' and len(images) > 20:
+                return self._show_all_images_menu(images, title)
+            else:
+                # Try to parse as number
+                try:
+                    choice_num = int(choice)
+                    if 1 <= choice_num <= min(20, len(images)):
+                        selected_path = images[choice_num - 1]
+                        if os.path.exists(selected_path):
+                            return selected_path
+                        else:
+                            self.console.print(f"[red]File no longer exists: {selected_path}[/red]")
+                            continue
+                    else:
+                        self.console.print(f"[red]Please enter a number between 1 and {min(20, len(images))}[/red]")
+                        continue
+                except ValueError:
+                    self.console.print("[red]Invalid choice. Please try again.[/red]")
+                    continue
+    
+    def _show_all_images_menu(self, images: List[str], title: str) -> Optional[str]:
+        """Show all images with pagination."""
+        page_size = 20
+        total_pages = (len(images) + page_size - 1) // page_size
+        current_page = 0
+        
+        while True:
+            start_idx = current_page * page_size
+            end_idx = min(start_idx + page_size, len(images))
+            page_images = images[start_idx:end_idx]
+            
+            self.console.clear()
+            self.console.print(f"\n[bold cyan]📸 {title} - Page {current_page + 1}/{total_pages}[/bold cyan]")
+            
+            table = Table(show_header=True, header_style="bold cyan")
+            table.add_column("#", style="bold green", width=4)
+            table.add_column("Image Path", style="white")
+            table.add_column("Size", style="dim", width=10)
+            
+            for i, img_path in enumerate(page_images, start_idx + 1):
+                try:
+                    size = os.path.getsize(img_path)
+                    size_str = self._format_file_size(size)
+                except:
+                    size_str = "Unknown"
+                
+                display_path = img_path
+                if len(display_path) > 60:
+                    display_path = "..." + display_path[-57:]
+                
+                table.add_row(str(i), display_path, size_str)
+            
+            self.console.print(table)
+            
+            # Navigation options
+            options = []
+            options.append(f"[green]{start_idx + 1}-{end_idx}[/green]: Select image")
+            if current_page > 0:
+                options.append("[yellow]'prev'[/yellow]: Previous page")
+            if current_page < total_pages - 1:
+                options.append("[yellow]'next'[/yellow]: Next page")
+            options.append("[yellow]'manual'[/yellow]: Enter path manually")
+            options.append("[red]'back'[/red]: Go back")
+            
+            self.console.print(f"\n[bold]Options:[/bold] {' | '.join(options)}")
+            
+            choice = self.console.input("\nSelect option: ").strip().lower()
+            
+            if choice == 'back':
+                return None
+            elif choice == 'prev' and current_page > 0:
+                current_page -= 1
+            elif choice == 'next' and current_page < total_pages - 1:
+                current_page += 1
+            elif choice == 'manual':
+                return self._get_manual_image_path()
+            else:
+                try:
+                    choice_num = int(choice)
+                    if 1 <= choice_num <= len(images):
+                        selected_path = images[choice_num - 1]
+                        if os.path.exists(selected_path):
+                            return selected_path
+                        else:
+                            self.console.print(f"[red]File no longer exists: {selected_path}[/red]")
+                            self.console.input("Press Enter to continue...")
+                    else:
+                        self.console.print(f"[red]Please enter a number between 1 and {len(images)}[/red]")
+                        self.console.input("Press Enter to continue...")
+                except ValueError:
+                    self.console.print("[red]Invalid choice. Please try again.[/red]")
+                    self.console.input("Press Enter to continue...")
+    
+    def _get_manual_image_path(self) -> Optional[str]:
+        """Get image path manually from user input."""
+        self.console.print("\n[bold cyan]📝 Manual Path Entry[/bold cyan]")
+        self.console.print("[dim]Tip: You can drag and drop files into the terminal on most systems[/dim]")
+        
+        path = Prompt.ask("Enter image path").strip()
+        
+        if not path:
+            return None
+        
+        # Clean up the path (remove quotes if present)
+        path = path.strip('\'"')
+        
+        if os.path.exists(path):
+            return path
+        else:
+            self.console.print(f"[red]File not found: {path}[/red]")
+            return None
+    
+    def _scan_different_directory(self) -> Optional[str]:
+        """Scan a different directory for images."""
+        self.console.print("\n[bold cyan]📁 Scan Different Directory[/bold cyan]")
+        directory = Prompt.ask("Enter directory path", default=".")
+        
+        if not os.path.isdir(directory):
+            self.console.print(f"[red]Directory not found: {directory}[/red]")
+            return None
+        
+        images = self._scan_for_images(directory)
+        if images:
+            return self._show_image_selection_menu(images, f"Select from {directory}")
+        else:
+            self.console.print(f"[yellow]No images found in {directory}[/yellow]")
+            return None
+    
+    def _format_file_size(self, size_bytes: int) -> str:
+        """Format file size in human readable format."""
+        if size_bytes < 1024:
+            return f"{size_bytes}B"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f}KB"
+        else:
+            return f"{size_bytes / (1024 * 1024):.1f}MB"
+    
+    def get_image_paths(self, max_images: int = 3, required: bool = True) -> List[str]:
+        """Get image file paths from user with enhanced interactive browser."""
+        self.console.print(f"[bold cyan]🖼️  图片选择器[/bold cyan]")
+        self.console.print(f"[dim]多列布局 • 目录导航 • 批量选择 (最多 {max_images} 张)[/dim]\\n")
+        
+        # 询问用户选择方式
+        self.console.print("[bold]选择方式:[/bold]")
+        self.console.print("[green]1.[/green] 🚀 增强版浏览器 (推荐) - 多列布局、目录导航")
+        self.console.print("[green]2.[/green] 📝 手动输入路径")
+        
+        method = Prompt.ask("选择方式", choices=["1", "2"], default="1")
+        
+        if method == "1":
+            # 使用增强版浏览器
+            try:
+                browser = create_enhanced_browser(self.console)
+                selected_paths = browser.browse_and_select_images(max_images=max_images)
+                
+                if selected_paths:
+                    self.console.print(f"\\n[bold green]✅ 已选择 {len(selected_paths)} 张图片:[/bold green]")
+                    for i, path in enumerate(selected_paths, 1):
+                        self.console.print(f"  {i}. [blue]{os.path.basename(path)}[/blue]")
+                    return selected_paths
+                elif required:
+                    self.console.print("[red]需要至少选择一张图片[/red]")
+                    # 回退到手动输入
+                    return self._get_manual_image_paths_fallback(max_images)
+                else:
+                    return []
+                    
+            except Exception as e:
+                self.console.print(f"[red]浏览器错误: {e}[/red]")
+                self.console.print("[yellow]回退到手动输入模式[/yellow]")
+                return self._get_manual_image_paths_fallback(max_images)
+        else:
+            # 手动输入路径
+            return self._get_manual_image_paths_fallback(max_images)
+    
+    def _get_manual_image_paths_fallback(self, max_images: int) -> List[str]:
+        """手动输入图片路径的后备方法"""
+        images = []
+        
+        self.console.print(f"\\n[bold yellow]📝 手动输入图片路径 (最多 {max_images} 张)[/bold yellow]")
         
         for i in range(max_images):
-            if i == 0 and required:
-                prompt_text = "Enter path to first image"
-            else:
-                prompt_text = f"Enter path to image {i+1} (or press Enter to skip)"
-            
-            path = Prompt.ask(prompt_text, default="" if i > 0 or not required else None)
-            
-            if not path:
-                if i == 0 and required:
-                    self.console.print("[red]At least one image is required.[/red]")
-                    continue
+            while True:
+                if i == 0:
+                    prompt = "请输入第一张图片路径"
                 else:
-                    break
-            
-            if not os.path.exists(path):
-                self.console.print(f"[red]File not found: {path}[/red]")
-                continue
-            
-            images.append(path)
-            self.console.print(f"[green]✓ Added: {path}[/green]")
+                    prompt = f"请输入第 {i+1} 张图片路径 (直接回车跳过)"
+                
+                path = self.console.input(f"{prompt}: ").strip()
+                
+                if not path:
+                    if i == 0:
+                        self.console.print("[red]至少需要输入一张图片路径[/red]")
+                        continue
+                    else:
+                        break  # 跳过后续图片
+                
+                # 展开用户路径
+                expanded_path = os.path.expanduser(path)
+                
+                if not os.path.exists(expanded_path):
+                    self.console.print(f"[red]文件不存在: {path}[/red]")
+                    continue
+                
+                if not os.path.isfile(expanded_path):
+                    self.console.print(f"[red]不是有效的文件: {path}[/red]")
+                    continue
+                
+                # 检查文件扩展名
+                ext = os.path.splitext(expanded_path)[1].lower()
+                supported_formats = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.heic', '.webp'}
+                if ext not in supported_formats:
+                    self.console.print(f"[yellow]警告: 可能不支持的图片格式: {ext}[/yellow]")
+                    if not Confirm.ask("继续使用此文件?", default=False):
+                        continue
+                
+                if expanded_path in images:
+                    self.console.print(f"[yellow]图片已选择: {path}[/yellow]")
+                    continue
+                
+                images.append(expanded_path)
+                self.console.print(f"[green]✓ 已添加: {os.path.basename(expanded_path)}[/green]")
+                break
         
         return images
     
