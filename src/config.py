@@ -49,7 +49,7 @@ class Config:
             "save_history": True,
             "max_history_items": 100,
             "auto_open_images": False,
-            "language": "en"
+            "language": "zh"
         }
         
         if self.config_file.exists():

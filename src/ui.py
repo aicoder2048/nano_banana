@@ -58,37 +58,72 @@ class NanoBananaUI:
     
     def show_main_menu(self) -> str:
         """Show main menu and get user choice."""
-        menu_options = [
+        from rich.columns import Columns
+        from rich.rule import Rule
+        
+        # Core features (highlighted)
+        core_features = [
             ("1", i18n.t("main_menu_text_to_image"), i18n.t("main_menu_text_to_image_desc")),
             ("2", i18n.t("main_menu_image_editing"), i18n.t("main_menu_image_editing_desc")),
-            ("3", i18n.t("main_menu_chat_image"), i18n.t("main_menu_chat_image_desc")),
+            ("3", i18n.t("main_menu_chat_image"), i18n.t("main_menu_chat_image_desc"))
+        ]
+        
+        # Secondary options (de-emphasized)
+        other_options = [
             ("4", i18n.t("main_menu_settings"), i18n.t("main_menu_settings_desc")),
             ("5", i18n.t("main_menu_history"), i18n.t("main_menu_history_desc")),
-            ("6", i18n.t("main_menu_help"), i18n.t("main_menu_help_desc")),
             ("7", i18n.t("main_menu_language"), i18n.t("main_menu_language_desc")),
             ("Q", i18n.t("main_menu_quit"), i18n.t("main_menu_quit_desc"))
         ]
         
-        # Create table
-        table = Table(show_header=False, box=None, padding=(0, 2))
-        table.add_column("Key", style="bold cyan", width=3)
-        table.add_column("Option", style="bold white", width=35)
-        table.add_column("Description", style="dim", width=30)
+        # Create main features table (emphasized)
+        main_table = Table(show_header=False, box=None, padding=(0, 2))
+        main_table.add_column("Key", style="bold cyan", width=3)
+        main_table.add_column("Option", style="bold white", width=35)
+        main_table.add_column("Description", style="bright_white", width=30)
         
-        for key, option, desc in menu_options:
-            table.add_row(f"[{key}]", option, desc)
+        for key, option, desc in core_features:
+            main_table.add_row(f"[bold cyan][{key}][/bold cyan]", f"[bold white]{option}[/bold white]", f"[bright_white]{desc}[/bright_white]")
         
-        panel = Panel(
-            table,
-            title=f"[bold]{i18n.t('main_menu_title')}[/bold]",
-            border_style="bright_blue",
-            padding=(1, 2)
-        )
+        # Create secondary options table (de-emphasized)
+        secondary_table = Table(show_header=False, box=None, padding=(0, 2))
+        secondary_table.add_column("Key", style="dim cyan", width=3)
+        secondary_table.add_column("Option", style="dim white", width=35)
+        secondary_table.add_column("Description", style="dim", width=30)
         
-        self.console.print(panel)
+        for key, option, desc in other_options:
+            secondary_table.add_row(f"[dim cyan][{key}][/dim cyan]", f"[dim]{option}[/dim]", f"[dim]{desc}[/dim]")
+        
+        # Combine in a layout
+        from rich.layout import Layout
+        from rich.align import Align
+        
+        # Title
+        self.console.print()
+        self.console.print(Panel(
+            f"[bold cyan]🎨 {i18n.t('main_menu_title')} 🎨[/bold cyan]",
+            style="bold on black",
+            border_style="bright_blue"
+        ))
         self.console.print()
         
-        choice = Prompt.ask(i18n.t("select_option"), choices=["1", "2", "3", "4", "5", "6", "7", "q", "Q"], default="1")
+        # Core features
+        self.console.print("[bold bright_cyan]━━━ 核心功能 Core Features ━━━[/bold bright_cyan]")
+        self.console.print()
+        self.console.print(main_table)
+        self.console.print()
+        
+        # Separator
+        self.console.print(Rule(style="dim"))
+        
+        # Other options
+        self.console.print("[dim]其他选项 Other Options[/dim]")
+        self.console.print()
+        self.console.print(secondary_table)
+        self.console.print()
+        
+        # Note: removed choice "6" from the choices list
+        choice = Prompt.ask(i18n.t("select_option"), choices=["1", "2", "3", "4", "5", "7", "q", "Q"], default="1")
         return choice.upper()
     
     def show_text_to_image_menu(self) -> str:

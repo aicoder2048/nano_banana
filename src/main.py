@@ -24,12 +24,12 @@ class NanoBananaApp:
     def run(self):
         """Run the main application."""
         try:
-            # Load saved language preference
-            saved_language = config.get("language", "en")
-            if saved_language == "zh":
-                i18n.set_language(Language.CHINESE)
-            else:
+            # Load saved language preference (default to Chinese)
+            saved_language = config.get("language", "zh")
+            if saved_language == "en":
                 i18n.set_language(Language.ENGLISH)
+            else:
+                i18n.set_language(Language.CHINESE)
             
             # Check for API key
             if not config.get_api_key():
@@ -84,10 +84,6 @@ class NanoBananaApp:
         elif choice == "5":
             # View Generation History
             self._show_history()
-        
-        elif choice == "6":
-            # Help & Templates
-            self._show_help()
         
         elif choice == "7":
             # Language Selection
