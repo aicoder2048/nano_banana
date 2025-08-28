@@ -373,16 +373,27 @@ class NanoBananaUI:
     
     def get_custom_prompt(self, mode: str = "text-to-image") -> str:
         """Get custom prompt from user."""
-        self.console.print(f"[bold cyan]✍️  Custom {mode.title()} Prompt[/bold cyan]\n")
+        mode_display = mode.replace("-", " ").title()
+        self.console.print(f"[bold cyan]{i18n.t('enter_custom_prompt', mode=mode_display)}[/bold cyan]\n")
         
         prompt = ""
-        self.console.print("Enter your prompt (press Enter twice to finish):")
+        self.console.print(i18n.t("enter_prompt_instructions"))
         
+        empty_line_count = 0
         while True:
             line = input()
-            if line == "" and prompt:
-                break
-            prompt += line + "\n" if line else "\n"
+            if line == "":
+                empty_line_count += 1
+                if empty_line_count == 1 and prompt:
+                    # Show hint after first Enter
+                    self.console.print(i18n.t("enter_once_more"))
+                elif empty_line_count >= 2 and prompt:
+                    # Two consecutive empty lines, finish input
+                    break
+                prompt += "\n"
+            else:
+                empty_line_count = 0  # Reset counter when non-empty line is entered
+                prompt += line + "\n"
         
         return prompt.strip()
     

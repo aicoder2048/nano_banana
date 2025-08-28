@@ -94,10 +94,6 @@ class ImageEditor:
             ui.console.print(f"  {i}. {path}")
         ui.console.print()
         
-        # Confirm generation
-        if not ui.console.input("Edit images? [Y/n]: ").lower() in ['', 'y', 'yes']:
-            return
-        
         # Select resolution (optional for editing)
         use_custom_resolution = ui.console.input("Specify output resolution? [y/N]: ").lower() in ['y', 'yes']
         resolution = ui.select_resolution() if use_custom_resolution else None

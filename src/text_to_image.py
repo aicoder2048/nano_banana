@@ -93,14 +93,10 @@ class TextToImageGenerator:
         ui.console.print("\n[bold]Final prompt:[/bold]")
         ui.console.print(f"[dim]{prompt}[/dim]\n")
         
-        # Confirm generation
-        if not ui.console.input("Generate image? [Y/n]: ").lower() in ['', 'y', 'yes']:
-            return
-        
         # Select resolution
         resolution = ui.select_resolution()
         
-        # Generate image
+        # Generate image directly without confirmation
         with ui.show_progress("🎨 Generating image...") as progress:
             task = progress.add_task("Generating...", total=None)
             

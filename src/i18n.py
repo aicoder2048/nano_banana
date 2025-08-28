@@ -149,7 +149,8 @@ class I18n:
                 "select_images": "📁 Select Images (max {max_images})",
                 "enter_image_path": "Enter path to {ordinal} image",
                 "enter_custom_prompt": "✍️  Custom {mode} Prompt",
-                "enter_prompt_instructions": "Enter your prompt (press Enter twice to finish):",
+                "enter_prompt_instructions": "Enter your prompt ([green]press Enter twice to finish[/green]):",
+                "enter_once_more": "[yellow]Press Enter once more to complete input[/yellow]",
                 
                 # Resolution Selection
                 "select_resolution": "📐 Select Resolution",
@@ -291,7 +292,8 @@ class I18n:
                 "select_images": "📁 选择图片（最多 {max_images} 张）",
                 "enter_image_path": "输入第 {ordinal} 张图片的路径",
                 "enter_custom_prompt": "✍️  自定义 {mode} 提示词",
-                "enter_prompt_instructions": "输入您的提示词（按两次回车完成）：",
+                "enter_prompt_instructions": "输入您的提示词（[green]按两次 Enter 键完成输入[/green]）：",
+                "enter_once_more": "[yellow]已输入一次 Enter，再按一次 Enter 完成输入[/yellow]",
                 
                 # 分辨率选择
                 "select_resolution": "📐 选择分辨率",
