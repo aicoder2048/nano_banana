@@ -187,10 +187,7 @@ class ChatImageGenerator:
             else:
                 ui.show_error("Chat failed", response_text)
         
-        # Ask to save any remaining images
-        if self.current_images:
-            if ui.console.input("Save current images before exiting? [Y/n]: ").lower() in ['', 'y', 'yes']:
-                self._save_current_images()
+        # Exit without asking to save images
     
     def _clear_conversation(self):
         """Clear conversation history and current images."""
